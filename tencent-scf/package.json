@@ -4,10 +4,6 @@
   "private": true,
   "description": "洛克家园腾讯云函数 API backend",
   "main": "index.js",
-  "dependencies": {
-    "cos-nodejs-sdk-v5": "^3.0.0",
-    "roco-home-dashboard": "file:.."
-  },
   "engines": {
     "node": ">=18"
   }

@@ -5,9 +5,6 @@ const MAP_DATA_ORIGIN = "http://wentao-home.cn/map_data";
 const CALENDAR_ENDPOINT = "https://apii.xianyuw.cn/api/v1/rocom-calendar";
 const PET_VIEWER_ORIGIN = "https://rocom.vip";
 const CALENDAR_IMAGE_HOSTS = new Set(["game.gtimg.cn", "patchwiki.biligame.com"]);
-const MAX_PET_ASSET_BYTES = 16 * 1024 * 1024;
-const MAX_INLINE_PET_ASSET_BYTES = 4 * 1024 * 1024;
-let cosClient;
 
 function getRequest(event) {
   const requestContext = event.requestContext || {};
@@ -28,52 +25,6 @@ function getRequest(event) {
   const origin = event.headers?.origin || event.headers?.Origin || "";
 
   return { method, path, query, origin };
-}
-
-function getCosConfig() {
-  const { COS_BUCKET, COS_REGION, COS_SECRET_ID, COS_SECRET_KEY, COS_PUBLIC_BASE_URL } = process.env;
-  if (![COS_BUCKET, COS_REGION, COS_SECRET_ID, COS_SECRET_KEY, COS_PUBLIC_BASE_URL].every((value) => value?.trim())) {
-    return null;
-  }
-  return {
-    bucket: COS_BUCKET.trim(),
-    region: COS_REGION.trim(),
-    publicBaseUrl: COS_PUBLIC_BASE_URL.trim().replace(/\/+$/, ""),
-  };
-}
-
-function getCosClient() {
-  if (cosClient) return cosClient;
-  const { COS_SECRET_ID, COS_SECRET_KEY, TENCENTCLOUD_SESSIONTOKEN } = process.env;
-  const COS = require("cos-nodejs-sdk-v5");
-  cosClient = new COS({
-    SecretId: COS_SECRET_ID,
-    SecretKey: COS_SECRET_KEY,
-    ...(TENCENTCLOUD_SESSIONTOKEN ? { SecurityToken: TENCENTCLOUD_SESSIONTOKEN } : {}),
-  });
-  return cosClient;
-}
-
-function callCos(method, params) {
-  return new Promise((resolve, reject) => {
-    getCosClient()[method](params, (error, data) => {
-      if (error) reject(error);
-      else resolve(data);
-    });
-  });
-}
-
-function redirectResponse(location, corsHeaders) {
-  return {
-    statusCode: 302,
-    headers: {
-      ...corsHeaders,
-      "Cache-Control": "public, max-age=604800, immutable",
-      "Location": location,
-    },
-    body: "",
-    isBase64Encoded: false,
-  };
 }
 
 function getCorsHeaders(origin) {
@@ -234,6 +185,19 @@ async function handleCalendarImage(query, headers) {
 }
 
 async function handlePetConfig(headers) {
+  const assetBaseUrl = process.env.PET_ASSET_BASE_URL;
+  if (!assetBaseUrl) {
+    return jsonResponse(503, { error: "宠物静态资源地址尚未配置，请设置服务端 PET_ASSET_BASE_URL。" }, headers);
+  }
+  let normalizedAssetBase;
+  try {
+    const parsed = new URL(assetBaseUrl);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error();
+    normalizedAssetBase = parsed.href.replace(/\/+$/, "");
+  } catch {
+    return jsonResponse(503, { error: "服务端 PET_ASSET_BASE_URL 必须是有效的 HTTPS 地址。" }, headers);
+  }
+
   const response = await fetchResponse(`${PET_VIEWER_ORIGIN}/api/pet-viewer/config`, {
     headers: { Accept: "application/json" },
   });
@@ -241,72 +205,39 @@ async function handlePetConfig(headers) {
   if (!config || config.enabled !== true || !Array.isArray(config.pet?.models)) {
     return jsonResponse(502, { error: "宠物展示服务暂未提供可用的模型配置。" }, headers);
   }
-  return jsonResponse(200, config, {
+  const modelAssetIds = new Set(config.pet.models.map((model) => {
+    const modelUrl = model.assets?.model || "";
+    return modelUrl.match(/\/asset\/([A-Za-z0-9_-]+)$/)?.[1];
+  }).filter(Boolean));
+  const assetExtensions = new Map([...modelAssetIds].map((assetId) => [assetId, ".glb"]));
+  for (const [name, value] of Object.entries(config.assets || {})) {
+    const assetId = typeof value === "string" ? value.match(/\/asset\/([A-Za-z0-9_-]+)$/)?.[1] : null;
+    if (assetId) assetExtensions.set(assetId, name.startsWith("model_") ? ".glb" : ".png");
+  }
+  for (const appearance of config.pet.appearances || []) {
+    for (const field of ["asset", "noiseAsset", "starAsset"]) {
+      const assetId = appearance[field]?.match(/\/asset\/([A-Za-z0-9_-]+)$/)?.[1];
+      if (assetId) assetExtensions.set(assetId, ".png");
+    }
+  }
+  const rewriteAssets = (value) => {
+    if (Array.isArray(value)) return value.map(rewriteAssets);
+    if (!value || typeof value !== "object") {
+      if (typeof value !== "string") return value;
+      const match = value.match(/^\/api\/pet-viewer\/asset\/([A-Za-z0-9_-]+)$/);
+      if (!match) return value;
+      const [, assetId] = match;
+      const extension = assetExtensions.get(assetId);
+      if (!extension) return value;
+      return `${normalizedAssetBase}/${assetId}${extension}`;
+    }
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, rewriteAssets(child)]));
+  };
+  const publicConfig = rewriteAssets(config);
+  return jsonResponse(200, publicConfig, {
     ...headers,
     "Cache-Control": "public, max-age=60",
   });
-}
-
-async function handlePetAsset(path, headers) {
-  const assetId = path.slice("/api/pet-viewer/asset/".length);
-  if (!/^[A-Za-z0-9_-]{8,80}$/.test(assetId)) {
-    return jsonResponse(400, { error: "无效的宠物资源地址。" }, headers);
-  }
-  const cosConfig = getCosConfig();
-  const key = `roco-pet-viewer/${assetId}`;
-  const cosParams = cosConfig
-    ? { Bucket: cosConfig.bucket, Region: cosConfig.region, Key: key }
-    : null;
-  if (cosConfig) {
-    try {
-      await callCos("headObject", cosParams);
-      return redirectResponse(`${cosConfig.publicBaseUrl}/${key}`, headers);
-    } catch (error) {
-      if (error.statusCode !== 404 && error.code !== "NoSuchKey" && error.code !== "NotFound") {
-        throw new Error(`腾讯云 COS 检查资源失败（${error.code || error.statusCode || "未知错误"}）。`);
-      }
-    }
-  }
-
-  const response = await fetchResponse(
-    `${PET_VIEWER_ORIGIN}/api/pet-viewer/asset/${assetId}`,
-    { headers: { Accept: "image/*, model/gltf-binary, application/octet-stream" } },
-  );
-  const contentType = response.headers.get("content-type") || "";
-  if (!response.ok) {
-    return jsonResponse(502, { error: `宠物模型资源读取失败（HTTP ${response.status}）。` }, headers);
-  }
-  if (!/^(?:image\/|model\/gltf-binary|application\/octet-stream)/i.test(contentType)) {
-    return jsonResponse(502, { error: "宠物资源服务返回了不支持的文件类型。" }, headers);
-  }
-  const declaredLength = Number(response.headers.get("content-length") || 0);
-  if (declaredLength > MAX_PET_ASSET_BYTES) {
-    return jsonResponse(413, { error: "宠物模型资源超过云函数响应大小限制。" }, headers);
-  }
-  const body = Buffer.from(await response.arrayBuffer());
-  if (body.length > MAX_PET_ASSET_BYTES) {
-    return jsonResponse(413, { error: "宠物模型资源超过云函数响应大小限制。" }, headers);
-  }
-  if (cosConfig) {
-    try {
-      await callCos("putObject", {
-        ...cosParams,
-        Body: body,
-        ContentType: contentType,
-        CacheControl: "public, max-age=31536000, immutable",
-        ACL: "public-read",
-      });
-    } catch (error) {
-      throw new Error(`腾讯云 COS 缓存宠物资源失败（${error.code || error.statusCode || "未知错误"}）。`);
-    }
-    return redirectResponse(`${cosConfig.publicBaseUrl}/${key}`, headers);
-  }
-  if (body.length > MAX_INLINE_PET_ASSET_BYTES) {
-    return jsonResponse(413, {
-      error: "该模型资源超出云函数同步响应大小限制，请配置 COS 资源缓存后重试。",
-    }, headers);
-  }
-  return binaryResponse(200, contentType, body, headers, "public, max-age=604800, immutable");
 }
 
 exports.main_handler = async (event = {}) => {
@@ -342,9 +273,6 @@ exports.main_handler = async (event = {}) => {
     }
     if (request.path === "/api/pet-viewer/config" && request.method === "GET") {
       return await handlePetConfig(corsHeaders);
-    }
-    if (request.path.startsWith("/api/pet-viewer/asset/") && request.method === "GET") {
-      return await handlePetAsset(request.path, corsHeaders);
     }
     return jsonResponse(404, { error: "接口不存在。" }, corsHeaders);
   } catch (error) {

@@ -132,10 +132,13 @@ function showError(message) {
 }
 
 function assetUrl(url) {
-  if (typeof url !== "string" || !url.startsWith("/api/pet-viewer/asset/")) {
+  if (typeof url === "string" && url.startsWith("/api/pet-viewer/asset/")) {
+    return apiUrl(url);
+  }
+  if (typeof url !== "string" || !/^https:\/\/[^/]+\/.+/.test(url)) {
     throw new Error("宠物服务返回了无效的资源地址。");
   }
-  return apiUrl(url);
+  return url;
 }
 
 async function loadTexture(url, colorSpace = THREE.SRGBColorSpace) {

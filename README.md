@@ -29,13 +29,13 @@ node server.js
 
 ## GitHub Pages + 腾讯云函数部署
 
-本项目包含 GitHub Pages 静态站点工作流 `.github/workflows/pages.yml` 和 Tencent SCF 后端 `tencent-scf/`。Pages 工作流只发布页面、前端脚本、样式和洛语字体，不会上传 Node.js 本地服务器或云函数。
+本项目包含 GitHub Pages 静态站点工作流 `.github/workflows/pages.yml` 和 Tencent SCF 后端 `tencent-scf/`。Pages 工作流发布页面、前端资源、洛语字体及 `pet-assets/` 内的已授权宠物模型和贴图，不会上传 Node.js 本地服务器或云函数。
 
 1. 将项目提交到 GitHub 仓库，并在 `tencent-scf/README.md` 的说明下创建 Node.js 18+ 云函数和 API 网关触发器。
-2. 在云函数环境变量中设置 `ROCO_CALENDAR_API_KEY`，将 `CORS_ALLOWED_ORIGINS` 设置为 GitHub Pages 站点来源，例如 `https://你的用户名.github.io`（不要附加仓库路径），并为宠物模型资源配置 COS 缓存（见 `tencent-scf/README.md`）。
+2. 在云函数环境变量中设置 `ROCO_CALENDAR_API_KEY`，将 `CORS_ALLOWED_ORIGINS` 设置为 GitHub Pages 站点来源，例如 `https://你的用户名.github.io`（不要附加仓库路径），并将 `PET_ASSET_BASE_URL` 设置为仓库 Pages 地址下的 `/pet-assets` 路径。
 3. 将 API 网关 HTTPS 服务地址填入 `api-config.js` 的 `ROCO_API_BASE_URL`，包含发布环境前缀但不带末尾斜线或 `/api`。
 4. 在 GitHub 仓库设置中将 Pages 来源设为 **GitHub Actions**。推送默认分支后工作流会发布站点；其他分支只构建，不发布。
-5. 部署后验证家园查询、地图数据、活动日历及宠物模型加载。COS/CDN 用于绕过云函数同步响应的大小限制并缓存 GLB 模型。
+5. 部署后验证家园查询、地图数据、活动日历及宠物模型加载。宠物模型和贴图由 GitHub Pages 直接提供，不使用 COS。
 
 本地开发时 `api-config.js` 的 API 地址保持空字符串，请继续通过 `npm start` 使用项目内置 Node.js 服务端。
 

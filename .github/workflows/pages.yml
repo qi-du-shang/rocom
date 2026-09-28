@@ -28,6 +28,7 @@ jobs:
           cp rune.html rune.css rune.js _site/
           cp pet-viewer.html pet-viewer.css pet-viewer.js _site/
           cp fonts/RUNEREGULAR.ttf _site/fonts/
+          cp -r pet-assets _site/pet-assets
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
