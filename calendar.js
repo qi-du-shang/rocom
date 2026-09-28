@@ -79,6 +79,53 @@ function safeImageUrl(value) {
   }
 }
 
+async function loadProxiedImage(image, imageUrl) {
+  const response = await fetch(imageUrl);
+  if (!response.ok) {
+    let message = `图片请求失败（HTTP ${response.status}）。`;
+    try {
+      const result = await response.json();
+      if (result.error) message = result.error;
+    } catch {
+      // Keep the HTTP status when the proxy does not return JSON.
+    }
+    throw new Error(message);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  let imageBlob;
+  if (/^\s*image\//i.test(contentType)) {
+    imageBlob = await response.blob();
+  } else {
+    // Tencent Function URL can return the image as Base64 text with a merged content type.
+    const imageType = contentType.match(/image\/[a-z\d.+-]+/i)?.[0];
+    if (!imageType) throw new Error("图片代理返回了非图片数据。");
+
+    let encoded = (await response.text()).trim();
+    encoded = encoded.replace(/^data:image\/[a-z\d.+-]+;base64,/i, "").replace(/\s/g, "");
+    if (!encoded || !/^[a-z\d+/]*={0,2}$/i.test(encoded)) {
+      throw new Error("图片代理返回了无效的 Base64 图片数据。");
+    }
+    let binary;
+    try {
+      binary = atob(encoded);
+    } catch {
+      throw new Error("图片代理返回了无法解码的 Base64 图片数据。");
+    }
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    imageBlob = new Blob([bytes], { type: imageType });
+  }
+
+  const objectUrl = URL.createObjectURL(imageBlob);
+  const releaseObjectUrl = () => URL.revokeObjectURL(objectUrl);
+  image.addEventListener("load", releaseObjectUrl, { once: true });
+  image.addEventListener("error", releaseObjectUrl, { once: true });
+  image.src = objectUrl;
+}
+
 function normalizeEvents(payload) {
   let root = payload;
   for (let depth = 0; depth < 4 && root && typeof root === "object" && !Array.isArray(root); depth += 1) {
@@ -199,7 +246,6 @@ function renderCalendarCover(imageUrl) {
   }
 
   const image = createElement("img", "calendar-cover-image");
-  image.src = imageUrl;
   image.alt = "洛克王国世界活动日历";
   image.loading = "eager";
   image.decoding = "async";
@@ -208,6 +254,9 @@ function renderCalendarCover(imageUrl) {
     showNotice("活动日历图片暂时无法加载，请稍后重试。");
   }, { once: true });
   calendarCover.append(image);
+  loadProxiedImage(image, imageUrl).catch(() => {
+    image.dispatchEvent(new Event("error"));
+  });
   if (calendarSourceUrl) {
     const source = createElement("a", "calendar-cover-source", "查看来源 ↗");
     source.href = calendarSourceUrl;
@@ -311,11 +360,11 @@ function renderAgenda() {
     );
     if (event.image) {
       const image = createElement("img", "agenda-event-image");
-      image.src = event.image;
       image.alt = `${event.title}活动图片`;
       image.loading = "eager";
       image.decoding = "async";
       image.addEventListener("error", () => image.remove(), { once: true });
+      loadProxiedImage(image, event.image).catch(() => image.dispatchEvent(new Event("error")));
       body.append(image);
     }
     body.append(createElement("h3", "", event.title), eventDates);
