@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#eff7f2">
+    <meta name="description" content="查看洛克王国世界活动日历，按日期浏览活动安排">
+    <title>活动日历 · 洛克家园</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./calendar.css">
+    <script src="./api-config.js"></script>
+    <script src="./calendar.js" defer></script>
+  </head>
+  <body>
+    <main class="calendar-app">
+      <header class="calendar-topbar">
+        <a class="calendar-brand" href="./" aria-label="返回洛克家园首页">
+          <span class="calendar-brand-mark" aria-hidden="true">✿</span>
+          <span><strong>洛克王国活动日历</strong><small>ROCO WORLD · EVENT CALENDAR</small></span>
+        </a>
+        <nav class="calendar-nav" aria-label="站点导航">
+          <a href="./">家园查询</a>
+          <a href="./map.html">世界地图</a>
+          <a href="./rune.html">洛语翻译</a>
+          <a href="./pet-viewer.html">宠物展示</a>
+        </nav>
+      </header>
+
+      <section class="calendar-intro">
+        <div>
+          <p class="calendar-kicker">PLAN YOUR ADVENTURE</p>
+          <h1>活动日历</h1>
+          <p class="calendar-subtitle">查看洛克王国世界的活动安排，不错过每一次冒险。</p>
+        </div>
+        <button id="calendar-load" class="load-calendar-button" type="button">加载日历</button>
+      </section>
+
+      <div id="calendar-notice" class="calendar-notice" role="status" aria-live="polite" hidden></div>
+
+      <section class="calendar-cover" id="calendar-cover" hidden aria-label="活动日历图片"></section>
+
+      <section class="calendar-layout" aria-label="活动日历">
+        <section class="calendar-card" aria-label="月历">
+          <div class="month-toolbar">
+            <div class="month-title">
+              <span class="month-icon" aria-hidden="true">▦</span>
+              <div><h2 id="month-label">—</h2><p id="month-summary">正在等待活动数据</p></div>
+            </div>
+            <div class="month-actions">
+              <button id="today-button" type="button">今天</button>
+              <button id="prev-month" type="button" aria-label="上个月">‹</button>
+              <button id="next-month" type="button" aria-label="下个月">›</button>
+            </div>
+          </div>
+          <div class="weekday-row" aria-hidden="true">
+            <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="月历日期"></div>
+          <div class="calendar-legend"><span><i class="legend-dot today-dot"></i>今天</span><span><i class="legend-dot event-dot"></i>有活动</span></div>
+        </section>
+
+        <aside class="agenda-card" aria-label="活动列表">
+          <div class="agenda-heading">
+            <div><p class="calendar-kicker">DAILY AGENDA</p><h2 id="agenda-date">今日活动</h2></div>
+            <span class="agenda-count" id="agenda-count">0 项</span>
+          </div>
+          <div class="agenda-list" id="agenda-list">
+            <div class="agenda-empty"><span aria-hidden="true">✧</span><strong>等待加载活动</strong><p>点击“加载日历”获取活动安排。</p></div>
+          </div>
+          <div class="agenda-foot"><span>活动数据由上游日历 API 提供</span><button id="reload-calendar" type="button">刷新数据</button></div>
+        </aside>
+      </section>
+
+      <footer class="calendar-footer"><span>ROCO WORLD · EVENT CALENDAR</span><span>活动时间以游戏内实际开放安排为准</span></footer>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#eff6f0">
+    <meta name="description" content="使用洛语字体输入洛克王国符文，并实时查看英文字符">
+    <title>洛克文翻译 · 洛克家园</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./rune.css">
+    <script src="./rune.js" defer></script>
+  </head>
+  <body>
+    <main class="rune-app">
+      <header class="rune-topbar">
+        <a class="rune-brand" href="./" aria-label="返回洛克家园首页">
+          <span class="rune-brand-mark" aria-hidden="true">ᚱ</span>
+          <span><strong>洛克家园</strong><small>ROCO WORLD · RUNE TRANSLATOR</small></span>
+        </a>
+        <nav class="rune-nav" aria-label="站点导航">
+          <a href="./">家园查询</a>
+          <a href="./map.html">世界地图</a>
+          <a href="./calendar.html">活动日历</a>
+          <a href="./pet-viewer.html">宠物展示</a>
+        </nav>
+      </header>
+
+      <section class="rune-hero">
+        <div>
+          <p class="rune-kicker">RUNE TEXT DECODER</p>
+          <h1>洛克文翻译</h1>
+          <p>上面输入洛克文，下面直接查看对应英文。</p>
+        </div>
+      </section>
+
+      <section class="rune-card rune-input-card" aria-labelledby="rune-input-title">
+        <div class="rune-section-heading">
+          <label id="rune-input-title" for="rune-input">洛克文输入</label>
+          <div class="rune-heading-actions">
+            <output class="rune-count" id="rune-count" for="rune-input">0 字</output>
+            <button class="rune-button subtle" id="keyboard-toggle" type="button" aria-expanded="true" aria-controls="rune-keyboard">键盘</button>
+          </div>
+        </div>
+        <textarea id="rune-input" class="rune-textarea" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="在这里输入或使用下方键盘输入洛克文…" aria-describedby="rune-help"></textarea>
+        <p class="rune-help" id="rune-help">可直接使用实体键盘输入，或点击下方符文键盘。</p>
+      </section>
+
+      <section class="rune-card keyboard-card" id="rune-keyboard" aria-labelledby="keyboard-title">
+        <div class="keyboard-heading">
+          <div class="keyboard-title"><span class="keyboard-grip" aria-hidden="true"></span><h2 id="keyboard-title">字母键盘</h2><p>点击符文，实时查看英文</p></div>
+          <div class="keyboard-actions">
+            <button class="rune-button subtle" id="caps-toggle" type="button" aria-pressed="false" title="切换大小写">ABC</button>
+            <button class="rune-button subtle" id="keyboard-hide" type="button">收起</button>
+          </div>
+        </div>
+        <div class="virtual-keyboard" aria-label="洛克文虚拟键盘">
+          <div class="key-row" data-keys="qwertyuiop"></div>
+          <div class="key-row" data-keys="asdfghjkl"></div>
+          <div class="key-row" data-keys="zxcvbnm"></div>
+          <div class="key-row utility-row">
+            <button class="rune-key utility-key" data-action="caps" type="button"><span>大写</span></button>
+            <button class="rune-key utility-key space-key" data-action="space" type="button"><span>空格</span></button>
+            <button class="rune-key utility-key punctuation-key" data-action="period" type="button"><span>.</span></button>
+            <button class="rune-key utility-key" data-action="enter" type="button"><span>换行</span></button>
+            <button class="rune-key utility-key" data-action="backspace" type="button"><span>退格</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="rune-card output-card" aria-labelledby="english-title">
+        <div class="rune-section-heading">
+          <label id="english-title" for="english-output">英文结果</label>
+          <span class="sync-label"><i></i> 实时同步</span>
+        </div>
+        <textarea id="english-output" class="english-output" readonly aria-label="英文翻译结果" placeholder="英文内容会显示在这里…"></textarea>
+        <div class="rune-status" id="rune-status" role="status" aria-live="polite"></div>
+      </section>
+
+      <footer class="rune-footer">
+        <span>ROCO WORLD · RUNE TRANSLATOR</span>
+        <div>
+          <button class="rune-button copy-button" id="copy-english" type="button">复制英文</button>
+          <button class="rune-button subtle" id="clear-all" type="button">清空</button>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

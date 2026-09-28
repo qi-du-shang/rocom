@@ -1,0 +1,9 @@
+{
+  "name": "roco-home-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "洛克王国世界家园信息与在线状态查询",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#eaf6f5">
+    <meta name="description" content="查询洛克王国世界家园资料与玩家在线状态">
+    <title>洛克家园 · 探索档案</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./api-config.js"></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="sky-glow" aria-hidden="true"></div>
+    <div class="scene scene-back" aria-hidden="true"></div>
+    <div class="scene scene-front" aria-hidden="true"></div>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="洛克家园首页">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none">
+              <path d="M20 3 5 10v10c0 9.3 6.4 14.8 15 18 8.6-3.2 15-8.7 15-18V10L20 3Z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M20 11c-5.1 0-8 4.3-8 9.1 0 3.5 2 6.1 4.4 7.2V33h7.2v-5.7c2.4-1.1 4.4-3.7 4.4-7.2C28 15.3 25.1 11 20 11Z" fill="currentColor"/>
+              <path d="M16 20h.1M24 20h.1M17.5 24.5c1.5 1.2 3.5 1.2 5 0" stroke="#123528" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="brand-copy"><strong>洛克家园</strong><small>ROCO HOME ATLAS</small></span>
+        </a>
+        <div class="topbar-actions">
+          <a class="map-nav" href="./map.html"><span aria-hidden="true">✥</span> 世界地图</a>
+          <a class="map-nav calendar-nav" href="./calendar.html"><span aria-hidden="true">▦</span> 活动日历</a>
+          <a class="map-nav" href="./rune.html"><span aria-hidden="true">ᚱ</span> 洛语翻译</a>
+          <a class="map-nav" href="./pet-viewer.html"><span aria-hidden="true">✦</span> 宠物展示</a>
+          <div class="topbar-note"><span class="live-dot"></span> 探索者档案站 <span class="note-divider">/</span> WORLD 01</div>
+        </div>
+      </header>
+
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-line"></span> THE WORLD OF ROCO</div>
+          <h1 id="page-title">发现你的<span>家园</span></h1>
+          <p>输入玩家 UID，开启一段家园探索之旅。</p>
+          <div class="hero-tags" aria-label="查询内容">
+            <span><i class="tag-icon tag-home"></i> 家园档案</span>
+            <span><i class="tag-icon tag-online"></i> 在线状态</span>
+            <span><i class="tag-icon tag-sparkle"></i> 即时探索</span>
+          </div>
+        </div>
+
+        <form class="search-card" id="lookup-form">
+          <label for="uid-input">探索者 UID</label>
+          <div class="search-row">
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"></circle><path d="m16 16 4.2 4.2"></path></svg>
+              <input id="uid-input" name="uid" type="text" inputmode="numeric" autocomplete="off" placeholder="例如 8833235" aria-describedby="search-hint">
+              <button class="clear-button" id="clear-button" type="button" aria-label="清空 UID" hidden>×</button>
+            </div>
+            <button class="search-button" id="search-button" type="submit">
+              <span class="button-icon" aria-hidden="true">⌕</span><span class="button-label">开始探索</span>
+            </button>
+          </div>
+          <div class="search-foot">
+            <span id="search-hint">请输入数字 UID，开启家园档案</span>
+            <label class="refresh-toggle" for="refresh-input"><input id="refresh-input" type="checkbox"><span class="switch"></span> 强制刷新</label>
+          </div>
+        </form>
+      </section>
+
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+      <section id="results" class="results" aria-label="查询结果" hidden>
+        <div class="profile-bar">
+          <div class="profile-avatar" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none"><path d="M24 4 7 12v11c0 10.2 7.3 16.2 17 20 9.7-3.8 17-9.8 17-20V12L24 4Z" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-width="1.7"/><path d="M24 13c-5.5 0-8.2 4.7-8.2 9.3 0 3.6 2 6.5 4.6 7.5V35h7.2v-5.2c2.6-1 4.6-3.9 4.6-7.5C32.2 17.7 29.5 13 24 13Z" fill="currentColor"/><path d="M20.2 22h.1m7.4 0h.1m-6.1 4.5c1.4 1.1 3.2 1.1 4.6 0" stroke="#18372f" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </div>
+          <div class="profile-identity"><span>探索者档案</span><strong>UID <b id="profile-uid">—</b></strong></div>
+          <div class="profile-divider"></div>
+          <div class="profile-stat"><span>档案状态</span><strong id="home-state">等待查询</strong></div>
+          <div class="profile-stat online-stat"><span>在线状态</span><strong id="online-state"><i class="status-dot"></i><span>等待查询</span></strong></div>
+          <div class="profile-meta"><span class="meta-stars">✳</span> <span id="result-caption">已准备好探索</span></div>
+          <button class="icon-button" type="button" id="copy-button" aria-label="复制玩家 UID" title="复制 UID">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"></rect><path d="M16 8V5a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h2"></path></svg>
+          </button>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="data-section home-section">
+            <div class="section-heading">
+              <div class="section-title"><span class="section-icon home-icon">✿</span><div><h2>家园档案</h2><p>HOME COLLECTION</p></div></div>
+              <span class="section-count" id="home-count">—</span>
+            </div>
+            <div class="section-content" id="home-content"><div class="empty-state">输入 UID 开始探索家园档案</div></div>
+          </section>
+          <div class="side-column">
+            <section class="data-section online-section">
+              <div class="section-heading">
+                <div class="section-title"><span class="section-icon status-icon">◉</span><div><h2>在线状态</h2><p>PLAYER PRESENCE</p></div></div>
+                <span class="section-count tiny-count">LIVE</span>
+              </div>
+              <div class="online-content" id="online-content"><div class="empty-state">等待探索者出现</div></div>
+            </section>
+            <section class="data-section guide-section">
+              <div class="section-heading">
+                <div class="section-title"><span class="section-icon guide-icon">✧</span><div><h2>探索手记</h2><p>FIELD NOTES</p></div></div>
+              </div>
+              <div class="guide-content">
+                <div class="guide-mark">“</div>
+                <p>家园里藏着每一位探索者的故事。输入 UID，看看今天发现了什么。</p>
+                <div class="guide-foot"><span class="guide-leaf">❋</span> 每一次探索，都有新发现</div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <footer class="result-footer"><span>ROCO HOME ATLAS</span><span>数据由上游服务提供</span></footer>
+      </section>
+
+      <footer class="page-footer"><span class="footer-flower">✿</span> 一起去家园看看吧 <span class="footer-divider">·</span> ROCO WORLD EXPLORER</footer>
+    </main>
+  </body>
+</html>

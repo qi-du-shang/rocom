@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#eaf6f5">
+    <meta name="description" content="浏览洛克王国世界地图，按分类查找收集物、花草、精灵和地点">
+    <title>世界地图 · 洛克家园</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="./map.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
+    <script src="./api-config.js"></script>
+    <script src="./map.js" defer></script>
+  </head>
+  <body>
+    <main class="map-app">
+      <header class="map-topbar">
+        <a class="map-brand" href="./" aria-label="返回洛克家园">
+          <span class="map-brand-mark" aria-hidden="true">✿</span>
+          <span><strong>洛克王国世界</strong><small>WORLD EXPLORER MAP</small></span>
+        </a>
+        <div class="map-top-actions">
+          <span class="map-live"><i></i> 互动地图</span>
+          <a class="back-home calendar-link" href="./calendar.html">活动日历</a>
+          <a class="back-home calendar-link" href="./rune.html">洛语翻译</a>
+          <a class="back-home calendar-link" href="./pet-viewer.html">宠物展示</a>
+          <a class="back-home" href="./">返回家园</a>
+          <button class="mobile-panel-toggle" id="mobile-panel-toggle" type="button" aria-label="显示地图分类">☷</button>
+        </div>
+      </header>
+
+      <div class="map-stage">
+        <div id="world-map" aria-label="洛克王国世界互动地图"></div>
+
+        <aside class="category-panel" id="category-panel" aria-label="地图分类">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">EXPLORE THE WORLD</p>
+              <h1>地图图鉴</h1>
+            </div>
+            <button class="panel-collapse" id="panel-collapse" type="button" aria-label="收起分类面板" title="收起分类面板">‹</button>
+          </div>
+          <div class="map-summary"><span id="map-location-count">正在载入地图资料…</span><span class="summary-separator">·</span><span id="visible-count">—</span></div>
+          <label class="map-search">
+            <span aria-hidden="true">⌕</span>
+            <input id="location-search" type="search" autocomplete="off" placeholder="搜索地点或收集物">
+            <button id="clear-search" type="button" aria-label="清除搜索" hidden>×</button>
+          </label>
+          <div class="search-results" id="search-results" hidden></div>
+          <div class="filter-actions">
+            <button id="show-all" type="button">全部显示</button>
+            <button id="hide-all" type="button">全部隐藏</button>
+          </div>
+          <div class="category-list" id="category-list">
+            <div class="map-loading"><span class="loading-spinner"></span> 正在载入分类与地点…</div>
+          </div>
+          <div class="panel-footer">
+            <span class="footer-sparkle">✧</span>
+            <span>点击地图标记查看地点详情</span>
+          </div>
+        </aside>
+
+        <button class="panel-expand" id="panel-expand" type="button" aria-label="展开地图分类" title="展开分类">☷</button>
+        <div class="map-controls" aria-label="地图缩放控制">
+          <button id="zoom-in" type="button" aria-label="放大地图" title="放大">+</button>
+          <span class="zoom-level" id="zoom-level">11×</span>
+          <button id="zoom-out" type="button" aria-label="缩小地图" title="缩小">−</button>
+          <button id="reset-view" type="button" aria-label="重置地图位置" title="重置视图">⌖</button>
+        </div>
+
+        <div class="map-notice" id="map-notice" role="status" aria-live="polite" hidden></div>
+        <div class="map-attribution">
+          <span>底图及坐标：<a href="https://map.17173.com/rocom/maps/shijie" target="_blank" rel="noopener noreferrer">17173 洛克王国世界互动地图</a></span>
+          <span>地点资料：<a href="http://wentao-home.cn/map.html" target="_blank" rel="noopener noreferrer">洛克王国世界工具站</a></span>
+        </div>
+        <a class="map-data-source" id="map-data-source" href="https://map.17173.com/rocom/maps/shijie" target="_blank" rel="noopener noreferrer">地图素材与坐标来源 · 17173</a>
+      </div>
+    </main>
+  </body>
+</html>
