@@ -1,4 +1,4 @@
-window.ROCO_API_BASE_URL = "";
+window.ROCO_API_BASE_URL = "https://1258632161-0i1k976nar.ap-hongkong.tencentscf.com";
 
 window.apiUrl = function apiUrl(path) {
   const baseUrl = String(window.ROCO_API_BASE_URL || "").trim().replace(/\/+$/, "");
