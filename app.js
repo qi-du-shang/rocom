@@ -12,6 +12,10 @@ const homeCount = document.querySelector("#home-count");
 const onlineState = document.querySelector("#online-state");
 const resultCaption = document.querySelector("#result-caption");
 const profileUid = document.querySelector("#profile-uid");
+const petDetailsToolbar = document.querySelector("#pet-details-toolbar");
+const petDetailsButton = document.querySelector("#pet-details-button");
+const petDetailsStatus = document.querySelector("#pet-details-status");
+const petDetailsContent = document.querySelector("#pet-details-content");
 
 const LABELS = {
   uid: "玩家 UID",
@@ -34,6 +38,16 @@ const LABELS = {
   featureOpened: "家园已开放",
   cached: "缓存数据",
   traitThresholds: "特征阈值",
+  heightCm: "身高",
+  heightPercent: "身高百分位",
+  weightKg: "体重",
+  weightPercent: "体重百分位",
+  bodyTrait: "体型",
+  voice: "声音",
+  voicePercent: "声音百分位",
+  voiceTrait: "音色",
+  nature: "性格",
+  eggStatus: "产蛋状态",
   residents: "家园居民",
   guards: "守护宠物",
   plants: "种植记录",
@@ -43,6 +57,8 @@ const LABELS = {
   defaultName: "默认名称",
   gender: "性别",
   mutation: "变异特征",
+  canLayEgg: "可产蛋",
+  fed: "喂食状态",
   feedRound: "喂养轮次",
   feedStatus: "喂养状态",
   hasEgg: "是否携蛋",
@@ -175,6 +191,131 @@ function renderRecordValue(key, value) {
     rendered.classList.add("mutation-colorful");
   }
   return rendered;
+}
+
+function findPetTraitIcon(key, value) {
+  const text = String(value ?? "").toLowerCase();
+  if (key === "bodyTrait") {
+    if (/小不点|small/.test(text)) return ["./icons/small-size.png", "小不点"];
+    if (/大块头|big/.test(text)) return ["./icons/big-size.png", "大块头"];
+  }
+  if (key === "voiceTrait") {
+    if (/婉转|轻柔|柔和|soft/.test(text)) return ["./icons/soft-voice.png", "婉转音"];
+    if (/粗嗓门|粗犷|响亮|loud|rough/.test(text)) return ["./icons/loud-voice.png", "粗嗓门"];
+  }
+  return null;
+}
+
+function petDetailValue(key, value) {
+  const wrapper = makeElement("span", "pet-detail-value");
+  const traitIcon = findPetTraitIcon(key, value);
+  if (traitIcon) {
+    const image = makeElement("img", "pet-trait-icon");
+    image.src = traitIcon[0];
+    image.alt = traitIcon[1];
+    image.loading = "lazy";
+    wrapper.append(image);
+  }
+
+  let display = displayValue(value, key);
+  if (value !== null && typeof value !== "object") {
+    if (key === "heightCm" && Number.isFinite(Number(value))) {
+      display = `${(Number(value) / 100).toFixed(2).replace(/\.?0+$/, "")} m`;
+    }
+    if (key === "weightKg" && Number.isFinite(Number(value))) {
+      display = `${Number(value).toFixed(3)} kg`;
+    }
+    if (key === "voice" && Number.isFinite(Number(value))) display = `${display} dB`;
+    if (["heightPercent", "weightPercent", "voicePercent"].includes(key)
+        && Number.isFinite(Number(value))) display = `${display}%`;
+  }
+  let content;
+  if (value !== null && typeof value === "object") {
+    content = renderPetDetailComplex(key, value);
+  } else {
+    content = renderRecordValue(key, value);
+    content.textContent = display;
+  }
+  wrapper.append(content);
+  return wrapper;
+}
+
+function renderPetDetailComplex(key, value) {
+  return renderComplexValue(value);
+}
+
+function isUnwantedPetDetail(key) {
+  return /^(?:skills?|skillList|skill_list|learnedSkills|learned_skills|stats?|sixDimensions|six_dimensions|sixStats|six_stats|individualValues|individual_values)$/i.test(key)
+    || /^(?:stat|iv)[A-Z_]/i.test(key);
+}
+
+function getPetDetailsList(payload) {
+  const data = unwrapData(payload);
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+  for (const key of ["pets", "petDetails", "pet_details", "details", "records"]) {
+    if (Array.isArray(data[key])) return data[key];
+  }
+  return [];
+}
+
+function renderPetDetails(payload) {
+  petDetailsContent.replaceChildren();
+  const data = unwrapData(payload);
+  const pets = getPetDetailsList(data);
+  if (!pets.length) {
+    const message = data?.available === false
+      ? "未获取到个体资料；该数据需要目标玩家在线并开放家园。"
+      : "上游没有返回可展示的个体资料。";
+    petDetailsContent.append(makeElement("div", "empty-state pet-details-empty", message));
+    petDetailsContent.hidden = false;
+    return 0;
+  }
+
+  const grid = makeElement("div", "pet-details-grid");
+  pets.forEach((pet, index) => {
+    if (!pet || typeof pet !== "object" || Array.isArray(pet)) return;
+    const card = makeElement("article", "pet-detail-card");
+    const heading = makeElement("div", "pet-detail-heading");
+    const imageSource = pet.image || pet.icon || pet.avatar;
+    const image = makeAssetImage(imageSource, "pet-detail-image", String(pet.name || "精灵"));
+    if (image) heading.append(image);
+    const title = makeElement("div", "pet-detail-title");
+    title.append(makeElement("strong", "", String(pet.name || pet.speciesName || pet.defaultName || `精灵 ${index + 1}`)));
+    const subtitle = [];
+    if (pet.level !== undefined && pet.level !== null) subtitle.push(`Lv.${displayValue(pet.level, "level")}`);
+    if (pet.defaultName && pet.defaultName !== pet.name) subtitle.push(`昵称：${pet.defaultName}`);
+    if (subtitle.length) title.append(makeElement("span", "", subtitle.join(" · ")));
+    heading.append(title);
+    if (pet.gender !== undefined) heading.append(renderGender(pet.gender));
+    card.append(heading);
+
+    const fields = makeElement("div", "pet-detail-fields");
+    const excluded = new Set([
+      "image", "icon", "avatar", "traitThresholds", "trait_thresholds",
+      "uid", "online", "onlineStatus", "online_status",
+    ]);
+    for (const [key, value] of Object.entries(pet)) {
+      if (excluded.has(key) || isUnwantedPetDetail(key)
+          || ["name", "speciesName", "defaultName", "level", "gender"].includes(key)) continue;
+      const field = makeElement("div", "pet-detail-field");
+      if (/(stat|dimension|individualvalue|six)/i.test(key)) field.classList.add("pet-detail-field-wide");
+      field.append(makeElement("span", "data-label", displayLabel(key)));
+      field.append(petDetailValue(key, value));
+      fields.append(field);
+    }
+    if (pet.level !== undefined && pet.level !== null) {
+      const field = makeElement("div", "pet-detail-field");
+      field.append(makeElement("span", "data-label", displayLabel("level")));
+      field.append(makeElement("span", "pet-detail-value", displayValue(pet.level, "level")));
+      fields.prepend(field);
+    }
+    card.append(fields);
+    grid.append(card);
+  });
+  petDetailsContent.append(grid);
+  petDetailsContent.hidden = false;
+  return grid.childElementCount;
 }
 
 function unwrapData(data) {
@@ -441,6 +582,31 @@ function setLoading(isLoading) {
   searchButton.querySelector(".button-label").textContent = isLoading ? "探索中" : "开始探索";
 }
 
+petDetailsButton.addEventListener("click", async () => {
+  const uid = profileUid.textContent.trim();
+  if (!/^[1-9]\d*$/.test(uid)) return;
+
+  petDetailsButton.disabled = true;
+  petDetailsStatus.textContent = "正在查询个体资料…";
+  petDetailsContent.hidden = false;
+  petDetailsContent.replaceChildren(makeElement("div", "loading-state", "正在获取居住精灵的个体资料…"));
+  try {
+    const query = new URLSearchParams({ uid, refresh: String(refreshInput.checked) });
+    const response = await fetch(apiUrl(`/api/pet-details?${query}`));
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `个体资料查询失败（HTTP ${response.status}）。`);
+    const count = renderPetDetails(result);
+    petDetailsStatus.textContent = count
+      ? `已获取 ${count} 只精灵的尺寸、体重、声音、性格与产蛋状态。`
+      : "本次没有获取到个体资料，可稍后重试。";
+  } catch (error) {
+    petDetailsContent.replaceChildren(makeElement("div", "data-error", error.message || "个体资料查询失败，请稍后重试。"));
+    petDetailsStatus.textContent = "个体资料查询失败";
+  } finally {
+    petDetailsButton.disabled = false;
+  }
+});
+
 uidInput.addEventListener("input", () => {
   clearButton.hidden = uidInput.value.length === 0;
 });
@@ -481,6 +647,11 @@ form.addEventListener("submit", async (event) => {
   homeCount.textContent = "…";
   homeContent.replaceChildren();
   homeContent.append(makeElement("div", "loading-state", "正在读取家园档案…"));
+  petDetailsToolbar.hidden = true;
+  petDetailsButton.disabled = true;
+  petDetailsStatus.textContent = "查询家园后可获取个体资料";
+  petDetailsContent.hidden = true;
+  petDetailsContent.replaceChildren();
   onlineContent.replaceChildren();
   onlineContent.append(makeElement("div", "loading-state", "正在查询在线状态…"));
   setLoading(true);
@@ -496,6 +667,9 @@ form.addEventListener("submit", async (event) => {
 
     if (result.home?.ok) {
       renderHome(result.home.data);
+      petDetailsToolbar.hidden = false;
+      petDetailsButton.disabled = false;
+      petDetailsStatus.textContent = "需目标玩家在线并开放家园；个体资料按需查询";
     } else {
       homeContent.replaceChildren(makeElement("div", "data-error", `家园档案查询失败：${result.home?.error || result.error || "未返回数据"}`));
       homeState.textContent = "查询失败";
